@@ -5,6 +5,7 @@ set (CMAKE_MODULE_PATH  ${CMAKE_MODULE_PATH}
                         ${CMAKE_CURRENT_SOURCE_DIR}/../../cmake)
 find_package (Threads)
 find_package (Bfd)
+find_package (Dyninst)
 
 include(TargetArch)
 target_architecture(CMAKE_TARGET_ARCHITECTURES)
@@ -51,6 +52,9 @@ set (DISASSEMBLER_SRCS
 	parsers/dummy-disassembler.cc
 )
 
+set (DYNINST_SRCS
+)
+
 set (HAS_LIBBFD "0")
 
 if("${CMAKE_TARGET_ARCHITECTURES}" STREQUAL "i386" OR "${CMAKE_TARGET_ARCHITECTURES}" STREQUAL "x86_64")
@@ -65,6 +69,13 @@ if("${CMAKE_TARGET_ARCHITECTURES}" STREQUAL "i386" OR "${CMAKE_TARGET_ARCHITECTU
 			${LIBBFD_IBERTY_LIBRARY}
 		)
 	endif()
+endif()
+
+
+if(LIBBFD_FOUND)
+	set (DYNINST_SRCS
+		engines/dyninst-engine.cc
+	)
 endif()
 
 set (coveralls_SRCS writers/coveralls-writer.cc)
@@ -84,18 +95,19 @@ set (ELF_SRCS
 set (MACHO_SRCS
 )
 set (SOLIB_generated )
+set (DYNINST_SOLIB_generated )
 
 # Linux-specific sources
 if (${CMAKE_SYSTEM_NAME} MATCHES Linux)
 	find_package (LibElf REQUIRED)
 	find_package (Elfutils REQUIRED)
 	set (ELF_SRCS
-		engines/clang-coverage-engine.cc
-		engines/ptrace.cc
+#		engines/clang-coverage-engine.cc
+#		engines/ptrace.cc
 		engines/kernel-engine.cc
-		parsers/elf.cc
-		parsers/elf-parser.cc
-		parsers/dwarf.cc
+#		parsers/elf.cc
+#		parsers/elf-parser.cc
+#		parsers/dwarf-libdwarf.cc
 		solib-handler.cc
 		solib-parser/phdr_data.c
 	)
@@ -103,6 +115,9 @@ if (${CMAKE_SYSTEM_NAME} MATCHES Linux)
 	add_library (${SOLIB} SHARED ${${SOLIB}_SRCS})
 	set_target_properties(${SOLIB} PROPERTIES SUFFIX ".so")
 	target_link_libraries(${SOLIB} dl)
+
+	add_library (kcov-binary-dyninst SHARED engines/dyninst-binary-lib.cc utils.cc)
+	set_target_properties(kcov-binary-dyninst PROPERTIES SUFFIX ".so")
 else()
 	find_library(LLDB_LIBRARY
       NAMES
@@ -133,6 +148,7 @@ set (${KCOV}_SRCS
     engines/bash-engine.cc
     engines/gcov-engine.cc
     engines/python-engine.cc
+    ${DYNINST_SRCS}
     filter.cc
     gcov.cc
     main.cc
@@ -195,6 +211,12 @@ add_custom_command(
    OUTPUT library.cc
    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/bin-to-c-source.py lib${SOLIB}.so __library > library.cc
    DEPENDS ${SOLIB} ${CMAKE_CURRENT_SOURCE_DIR}/bin-to-c-source.py
+   )
+
+add_custom_command(
+   OUTPUT dyninst-binary-library.cc
+   COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/bin-to-c-source.py libkcov-binary-dyninst.so __dyninst_binary_library > dyninst-binary-library.cc
+   DEPENDS kcov-binary-dyninst ${CMAKE_CURRENT_SOURCE_DIR}/bin-to-c-source.py
    )
 
 add_custom_command(
@@ -263,10 +285,12 @@ if(SPECIFY_RPATH)
 	ENDIF("${isSystemDir}" STREQUAL "-1")
 endif(SPECIFY_RPATH)
 
-add_executable (${KCOV} ${${KCOV}_SRCS} ${SOLIB_generated} bash-redirector-library.cc python-helper.cc bash-helper.cc html-data-files.cc version.c)
+add_executable (${KCOV} ${${KCOV}_SRCS} ${SOLIB_generated} bash-redirector-library.cc dyninst-binary-library.cc python-helper.cc bash-helper.cc html-data-files.cc version.c)
 
 target_link_libraries(${KCOV}
-	${LIBDW_LIBRARIES}
+    ${DYNINST_LIBRARIES}
+#	${LIBDW_LIBRARIES}
+#	dwarf
 	${LIBELF_LIBRARIES}
 	stdc++
 	${LIBCURL_LIBRARIES}

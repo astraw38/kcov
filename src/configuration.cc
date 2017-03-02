@@ -536,6 +536,8 @@ public:
 		setKey("merged-name", "[merged]");
 		setKey("css-file", "");
 		setKey("lldb-use-raw-breakpoint-writes", 0);
+		setKey("system-mode-write-file", 0);
+		setKey("system-mode-read-results-file", 0);
 	}
 
 
@@ -583,6 +585,10 @@ public:
 		if (key == "low-limit")
 			setKey(key, stoul(std::string(value)));
 		else if (key == "high-limit")
+			setKey(key, stoul(std::string(value)));
+		else if (key == "system-mode-write-file")
+			setKey(key, stoul(std::string(value)));
+		else if (key == "system-mode-read-results-file")
 			setKey(key, stoul(std::string(value)));
 		else if (key == "bash-use-basic-parser")
 			setKey(key, stoul(std::string(value)));
