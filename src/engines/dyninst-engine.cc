@@ -37,7 +37,6 @@ public:
 		m_mode(mode_unset),
 		m_listener(NULL),
 		m_bpatch(NULL),
-		m_process(NULL),
 		m_addressSpace(NULL),
 		m_binaryEdit(NULL),
 		m_image(NULL),
@@ -125,8 +124,10 @@ public:
 
 	virtual void setupParser(IFilter *filter)
 	{
-		if (!m_bpatch)
-			m_bpatch = new BPatch();
+		m_bpatch = new BPatch();
+		m_bpatch->setLivenessAnalysis(false);
+		m_bpatch->setDelayedParsing(true);
+		m_bpatch->setTypeChecking(false);
 	}
 
 	std::string getParserType()
@@ -183,11 +184,13 @@ public:
 		{
 			handleFileWriter();
 
+			m_addressSpace->beginInsertionSet();
 			for (unsigned i = 0; i < m_pendingAddresses.size(); i++)
 			{
 				std::pair<uint64_t, uint32_t> cur = m_pendingAddresses[i];
 				registerPendingBreakpoint(cur.first, cur.second);
 			}
+			m_addressSpace->finalizeInsertionSet(true);
 
 			BPatch_function *main = lookupFunction("main");
 			if (!main)
@@ -244,7 +247,7 @@ private:
 		args.push_back(&id);
 
 		BPatch_funcCallExpr call(*m_addressReporterFunction, args);
-			addSnippet(call, pts);
+		addSnippet(call, pts);
 	}
 
 	void addSnippet(BPatch_snippet &snippet, std::vector<BPatch_point *> &where)
@@ -418,7 +421,6 @@ private:
 
 	IEventListener *m_listener;
 	BPatch *m_bpatch;
-	BPatch_process *m_process;
 	BPatch_addressSpace *m_addressSpace;
 	BPatch_binaryEdit *m_binaryEdit;
 	BPatch_image *m_image;

@@ -22,7 +22,7 @@ struct Instance
 };
 
 static Instance g_instance;
-static uint32_t early_hits[1024];
+static uint32_t early_hits[4096];
 static uint32_t early_hits_index;
 
 
@@ -75,13 +75,6 @@ extern "C" void kcov_dyninst_binary_report_address(uint32_t bitIdx)
 	unsigned int wordIdx = bitIdx / 32;
 	unsigned int offset = bitIdx % 32;
 
-	if (wordIdx >= g_instance.bitVectorSize)
-	{
-		fprintf(stderr, "kcov: INTERNAL ERROR: Index out of bounds (%u vs %zu)\n",
-				wordIdx, g_instance.bitVectorSize);
-		return;
-	}
-
 	// Handle hits which happen before we're initialized
 	if (!g_instance.initialized)
 	{
@@ -93,6 +86,13 @@ extern "C" void kcov_dyninst_binary_report_address(uint32_t bitIdx)
 			return;
 		}
 		early_hits[dst] = bitIdx;
+		return;
+	}
+
+	if (wordIdx >= g_instance.bitVectorSize)
+	{
+		fprintf(stderr, "kcov: INTERNAL ERROR: Index out of bounds (%u vs %zu)\n",
+				wordIdx, g_instance.bitVectorSize);
 		return;
 	}
 
