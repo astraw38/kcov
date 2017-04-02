@@ -59,12 +59,50 @@ static void write_at_exit(void)
 	write_report(0);
 }
 
+static void read_report(void)
+{
+	std::string in = fmt("/tmp/kcov-data/%08lx", (long)g_instance.id);
+
+	if (!file_exists(in))
+	{
+		return;
+	}
+
+	size_t sz;
+	struct dyninst_file *src = (struct dyninst_file *)read_file(&sz, "%s", in.c_str());
+	if (!src)
+	{
+		printf("Can't read\n");
+		return;
+	}
+
+	// Wrong size
+	if (sz != g_instance.bitVectorSize * sizeof(uint32_t) + sizeof(struct dyninst_file))
+	{
+		printf("Wrong size??? %zu vs %zu\n", sz, g_instance.bitVectorSize * sizeof(uint32_t));
+		return;
+	}
+
+	// Skip old versions
+	if (src->magic != DYNINST_MAGIC ||
+			src->version != DYNINST_VERSION)
+	{
+		printf("Wrong magic\n");
+		return;
+	}
+	memcpy(g_instance.bits, (void *)src->data, sz - sizeof(struct dyninst_file));
+
+	free(src);
+}
+
 extern "C" void kcov_dyninst_binary_init(uint32_t id, size_t vectorSize)
 {
 	g_instance.bits = (uint32_t *)calloc(vectorSize, sizeof(uint32_t));
 	g_instance.bitVectorSize = vectorSize;
 	g_instance.id = id;
 	g_instance.last_time = time(NULL);
+
+	read_report();
 
 	atexit(write_at_exit);
 	g_instance.initialized = true;
