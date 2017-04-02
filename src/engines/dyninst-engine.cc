@@ -73,8 +73,13 @@ public:
 		m_filename = filename;
 
 		m_mode = mode_read_file;
-		if (IConfiguration::getInstance().keyAsInt("system-mode-write-file"))
+
+		std::string dst = IConfiguration::getInstance().keyAsString("system-mode-write-file");
+		if (dst != "")
+		{
+			m_outFile = dst;
 			m_mode = mode_write_file;
+		}
 
 		for (FileListenerList_t::const_iterator it = m_fileListeners.begin();
 				it != m_fileListeners.end();
@@ -139,7 +144,7 @@ public:
 	{
 		IConfiguration &conf = IConfiguration::getInstance();
 
-		if (conf.keyAsInt("system-mode-write-file") ||
+		if (conf.keyAsString("system-mode-write-file") != "" ||
 				conf.keyAsInt("system-mode-read-results-file"))
 			return match_perfect;
 
@@ -214,7 +219,7 @@ public:
 				return false;
 			}
 
-			m_binaryEdit->writeFile("/tmp/anka");
+			m_binaryEdit->writeFile(m_outFile.c_str());
 		}
 		else
 		{
@@ -415,6 +420,7 @@ private:
 
 	enum mode m_mode;
 	std::string m_filename;
+	std::string m_outFile;
 
 	LineListenerList_t m_lineListeners;
 	FileListenerList_t m_fileListeners;
