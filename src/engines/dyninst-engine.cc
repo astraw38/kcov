@@ -201,12 +201,17 @@ public:
 			if (!main)
 				return false;
 
+
 			std::vector< BPatch_snippet * > args;
 			BPatch_snippet id = BPatch_constExpr(m_checksum);
 			BPatch_snippet size = BPatch_constExpr(m_breakpointIdx);
+			BPatch_snippet filename = BPatch_constExpr(m_filename.c_str());
+			BPatch_snippet options = BPatch_constExpr(getKcovOptionsString().c_str());
 
 			args.push_back(&id);
 			args.push_back(&size);
+			args.push_back(&filename);
+			args.push_back(&options);
 			BPatch_funcCallExpr call(*m_reporterInitFunction, args);
 
 			BPatch_Vector<BPatch_point *> mainEntries;
@@ -238,8 +243,40 @@ public:
 	}
 
 private:
+	std::string getKcovOptionsString()
+	{
+		IConfiguration &conf = IConfiguration::getInstance();
 
-	virtual void registerPendingBreakpoint(uint64_t addr, uint32_t idx)
+		return fmt("%s %s %s %s %s %s",
+				keyListAsString(conf.keyAsList("include-pattern")).c_str(),
+				keyListAsString(conf.keyAsList("exclude-pattern")).c_str(),
+				keyListAsString(conf.keyAsList("include-path")).c_str(),
+				keyListAsString(conf.keyAsList("exclude-path")).c_str(),
+				conf.keyAsString("exclude-line").c_str(),
+				conf.keyAsString("exclude-region").c_str());
+	}
+
+	std::string keyListAsString(const std::vector<std::string> &list)
+	{
+		std::string out;
+
+		if (list.empty())
+		{
+			return "";
+		}
+
+		for (std::vector<std::string>::const_iterator it = list.begin();
+				it != list.end();
+				++it)
+		{
+			out = out + *it + ",";
+		}
+		out = out.substr(0, out.size() - 1); // Remove last ,
+
+		return out;
+	}
+
+	void registerPendingBreakpoint(uint64_t addr, uint32_t idx)
 	{
 		std::vector<BPatch_point *> pts;
 

@@ -94,7 +94,11 @@ public:
 				"                                                       # including /src/frodo\n"
 				"  kcov --collect-only /tmp/kcov ./frodo  # Collect coverage, don't report\n"
 				"  kcov --report-only /tmp/kcov ./frodo   # Report coverage collected above\n"
-				"  kcov --merge /tmp/out /tmp/dir1 /tmp/dir2    # Merge the dir1/dir2 reports\n"
+				"  kcov --merge /tmp/out /tmp/dir1 /tmp/dir2     # Merge the dir1/dir2 reports\n"
+				"  kcov --system-record /tmp/out-dir sysroot     # Perform full-system in-\n"
+				"                                                  strumentation for sysroot\n"
+				"  kcov --system-report  /tmp/data-dir           # Report all data from a full-\n"
+				"                                                  system run.\n"
 				"",
 				keyAsInt("low-limit"), keyAsInt("high-limit"),
 				uncommonOptions().c_str());
@@ -138,6 +142,8 @@ public:
 				{"python-parser", required_argument, 0, 'P'},
 				{"bash-parser", required_argument, 0, 'B'},
 				{"bash-method", required_argument, 0, '4'},
+				{"system-record", no_argument, 0, '8'},
+				{"system-report", no_argument, 0, '9'},
 				{"verify", no_argument, 0, 'V'},
 				{"version", no_argument, 0, 'v'},
 				{"uncommon-options", no_argument, 0, 'U'},
@@ -410,6 +416,12 @@ public:
 			  }
 			  break;
 			}
+			case '8': // Full system record
+				setKey("system-mode-record", 1);
+				break;
+			case '9': // Full system report
+				setKey("system-mode-report", 1);
+				break;
 			default:
 				error("Unrecognized option: -%c\n", optopt);
 				return usage();
@@ -538,6 +550,8 @@ public:
 		setKey("lldb-use-raw-breakpoint-writes", 0);
 		setKey("system-mode-write-file", "");
 		setKey("system-mode-read-results-file", 0);
+		setKey("system-mode-record", 0);
+		setKey("system-mode-report", 0);
 	}
 
 

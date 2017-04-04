@@ -5,6 +5,9 @@ struct dyninst_file
 	uint32_t magic;
 	uint32_t version;
 	uint32_t n_entries;
+	uint32_t header_checksum;
+	uint32_t filename_offset;
+	uint32_t kcov_options_offset; // --include-pattern etc
 	uint32_t data[];
 };
 

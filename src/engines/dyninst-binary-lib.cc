@@ -15,6 +15,8 @@ struct Instance
 {
 	uint32_t *bits;
 	size_t bitVectorSize;
+	std::string options;
+	std::string filename;
 	uint32_t id;
 	time_t last_time;
 
@@ -46,9 +48,15 @@ static void write_report(unsigned int idx)
 	dst.magic = DYNINST_MAGIC;
 	dst.version = DYNINST_VERSION;
 	dst.n_entries = g_instance.bitVectorSize;
+	dst.filename_offset = dst.n_entries * sizeof(uint32_t) + sizeof(dst);
+	dst.kcov_options_offset = dst.filename_offset + g_instance.filename.size() + 1;
 
 	fwrite(&dst, sizeof(dst), 1, fp);
 	fwrite(g_instance.bits, sizeof(uint32_t), g_instance.bitVectorSize, fp);
+	fprintf(fp, "%s", g_instance.filename.c_str());
+	fputc('\0', fp);
+	fprintf(fp, "%s", g_instance.options.c_str());
+	fputc('\0', fp);
 
 	fclose(fp);
 	rename(tmp.c_str(), out.c_str());
@@ -76,8 +84,12 @@ static void read_report(void)
 		return;
 	}
 
+	size_t expectedSize = g_instance.bitVectorSize * sizeof(uint32_t) + sizeof(struct dyninst_file) +
+			g_instance.filename.size() + 1 +
+			g_instance.options.size() + 1;
+
 	// Wrong size
-	if (sz != g_instance.bitVectorSize * sizeof(uint32_t) + sizeof(struct dyninst_file))
+	if (sz != expectedSize)
 	{
 		printf("Wrong size??? %zu vs %zu\n", sz, g_instance.bitVectorSize * sizeof(uint32_t));
 		return;
@@ -90,16 +102,25 @@ static void read_report(void)
 		printf("Wrong magic\n");
 		return;
 	}
-	memcpy(g_instance.bits, (void *)src->data, sz - sizeof(struct dyninst_file));
+
+	if (src->n_entries * sizeof(uint32_t) >= expectedSize)
+	{
+		printf("Too many entries\n");
+		return;
+	}
+
+	memcpy(g_instance.bits, (void *)src->data, src->n_entries * sizeof(uint32_t));
 
 	free(src);
 }
 
-extern "C" void kcov_dyninst_binary_init(uint32_t id, size_t vectorSize)
+extern "C" void kcov_dyninst_binary_init(uint32_t id, size_t vectorSize, const char *filename, const char *kcovOptions)
 {
 	g_instance.bits = (uint32_t *)calloc(vectorSize, sizeof(uint32_t));
 	g_instance.bitVectorSize = vectorSize;
 	g_instance.id = id;
+	g_instance.filename = filename;
+	g_instance.options = kcovOptions;
 	g_instance.last_time = time(NULL);
 
 	read_report();
