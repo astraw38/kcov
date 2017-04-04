@@ -72,7 +72,7 @@ if("${CMAKE_TARGET_ARCHITECTURES}" STREQUAL "i386" OR "${CMAKE_TARGET_ARCHITECTU
 endif()
 
 
-if(LIBBFD_FOUND)
+if(DYNINST_FOUND)
 	set (DYNINST_SRCS
 		engines/dyninst-engine.cc
 	)
@@ -102,12 +102,12 @@ if (${CMAKE_SYSTEM_NAME} MATCHES Linux)
 	find_package (LibElf REQUIRED)
 	find_package (Elfutils REQUIRED)
 	set (ELF_SRCS
-#		engines/clang-coverage-engine.cc
-#		engines/ptrace.cc
+		engines/clang-coverage-engine.cc
+		engines/ptrace.cc
 		engines/kernel-engine.cc
-#		parsers/elf.cc
-#		parsers/elf-parser.cc
-#		parsers/dwarf-libdwarf.cc
+		parsers/elf.cc
+		parsers/elf-parser.cc
+		parsers/dwarf.cc
 		solib-handler.cc
 		solib-parser/phdr_data.c
 	)
@@ -116,6 +116,7 @@ if (${CMAKE_SYSTEM_NAME} MATCHES Linux)
 	set_target_properties(${SOLIB} PROPERTIES SUFFIX ".so")
 	target_link_libraries(${SOLIB} dl)
 
+# Can be built even without dyninst
 	add_library (kcov-binary-dyninst SHARED engines/dyninst-binary-lib.cc utils.cc)
 	set_target_properties(kcov-binary-dyninst PROPERTIES SUFFIX ".so")
 else()
@@ -148,7 +149,6 @@ set (${KCOV}_SRCS
     engines/bash-engine.cc
     engines/gcov-engine.cc
     engines/python-engine.cc
-    ${DYNINST_SRCS}
     filter.cc
     gcov.cc
     main.cc
@@ -157,7 +157,7 @@ set (${KCOV}_SRCS
     ${DISASSEMBLER_SRCS}
     parser-manager.cc
     reporter.cc
-	source-file-cache.cc
+    source-file-cache.cc
     utils.cc
     writers/cobertura-writer.cc
     writers/json-writer.cc
@@ -186,6 +186,50 @@ set (${KCOV}_SRCS
     include/phdr_data.h
     )
 
+# Should be some better way of doing this...
+set (KCOV_DYNINST_SRCS
+    capabilities.cc
+    collector.cc
+    configuration.cc
+    dummy-solib-handler.cc
+    engine-factory.cc
+    engines/bash-engine.cc
+    engines/dyninst-engine.cc
+    engines/gcov-engine.cc
+    engines/python-engine.cc
+    filter.cc
+    gcov.cc
+    main.cc
+    merge-file-parser.cc
+    output-handler.cc
+    parser-manager.cc
+    reporter.cc
+    source-file-cache.cc
+    utils.cc
+    writers/cobertura-writer.cc
+    writers/json-writer.cc
+    ${coveralls_SRCS}
+    writers/html-writer.cc
+    writers/sonarqube-xml-writer.cc
+    writers/writer-base.cc
+    include/capabilities.hh
+    include/gcov.hh
+    include/reporter.hh
+    include/collector.hh
+    include/generated-data-base.hh
+    include/solib-handler.hh
+    include/configuration.hh
+    include/lineid.hh
+    include/swap-endian.hh
+    include/engine.hh
+    include/manager.hh
+    include/utils.hh
+    include/file-parser.hh
+    include/output-handler.hh
+    include/writer.hh
+    include/filter.hh
+    include/phdr_data.h
+)
 
 set (KCOV_LIBRARY_PREFIX "/tmp")
 
@@ -288,9 +332,8 @@ endif(SPECIFY_RPATH)
 add_executable (${KCOV} ${${KCOV}_SRCS} ${SOLIB_generated} bash-redirector-library.cc dyninst-binary-library.cc python-helper.cc bash-helper.cc html-data-files.cc version.c)
 
 target_link_libraries(${KCOV}
-    ${DYNINST_LIBRARIES}
-#	${LIBDW_LIBRARIES}
-#	dwarf
+	${LIBDW_LIBRARIES}
+	dwarf
 	${LIBELF_LIBRARIES}
 	stdc++
 	${LIBCURL_LIBRARIES}
@@ -301,6 +344,23 @@ target_link_libraries(${KCOV}
 	dl
 	${LLDB_LIBRARY}
 )
+
+if(DYNINST_FOUND)
+    add_executable (kcov-system ${KCOV_DYNINST_SRCS} ${SOLIB_generated} bash-redirector-library.cc dyninst-binary-library.cc python-helper.cc bash-helper.cc html-data-files.cc version.c)
+
+    target_link_libraries(kcov-system
+        ${DYNINST_LIBRARIES}
+        ${LIBELF_LIBRARIES}
+        stdc++
+        ${LIBCURL_LIBRARIES}
+        m
+        ${DISASSEMBLER_LIBRARIES}
+        ${LIBZ_LIBRARIES}
+        ${CMAKE_THREAD_LIBS_INIT}
+        dl
+        ${LLDB_LIBRARY}
+)
+endif()
 
 
 install (TARGETS ${PROJECT_NAME} ${INSTALL_TARGETS_PATH})
