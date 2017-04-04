@@ -375,6 +375,12 @@ public:
 			case 'm':
 				setKey("running-mode", IConfiguration::MODE_MERGE_ONLY);
 				break;
+			case '8': // Full system record
+				setKey("running-mode", IConfiguration::MODE_SYSTEM_RECORD);
+				break;
+			case '9': // Full system report
+				setKey("running-mode", IConfiguration::MODE_SYSTEM_REPORT);
+				break;
 			case 'l': {
 				StrVecMap_t vec = getCommaSeparatedList(std::string(optarg));
 
@@ -416,12 +422,6 @@ public:
 			  }
 			  break;
 			}
-			case '8': // Full system record
-				setKey("system-mode-record", 1);
-				break;
-			case '9': // Full system report
-				setKey("system-mode-report", 1);
-				break;
 			default:
 				error("Unrecognized option: -%c\n", optopt);
 				return usage();
@@ -550,8 +550,6 @@ public:
 		setKey("lldb-use-raw-breakpoint-writes", 0);
 		setKey("system-mode-write-file", "");
 		setKey("system-mode-read-results-file", 0);
-		setKey("system-mode-record", 0);
-		setKey("system-mode-report", 0);
 	}
 
 
