@@ -50,7 +50,7 @@ include (FindPackageHandleStandardArgs)
 
 # handle the QUIETLY and REQUIRED arguments and set DYNINST_FOUND to TRUE
 # if all listed variables are TRUE
-FIND_PACKAGE_HANDLE_STANDARD_ARGS(Dyninst DEFAULT_MSG
+FIND_PACKAGE_HANDLE_STANDARD_ARGS(DYNINST DEFAULT_MSG
     DYNINST_LIBRARIES
     DYNINST_INCLUDE_DIR)
 

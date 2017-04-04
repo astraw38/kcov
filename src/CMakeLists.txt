@@ -333,7 +333,6 @@ add_executable (${KCOV} ${${KCOV}_SRCS} ${SOLIB_generated} bash-redirector-libra
 
 target_link_libraries(${KCOV}
 	${LIBDW_LIBRARIES}
-	dwarf
 	${LIBELF_LIBRARIES}
 	stdc++
 	${LIBCURL_LIBRARIES}
