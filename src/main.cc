@@ -121,10 +121,6 @@ unsigned int countMetadata()
 	for (de = ::readdir(dir); de; de = ::readdir(dir)) {
 		std::string cur = base + de->d_name + "/metadata";
 
-		// ... except for the current coveree
-		if (de->d_name == conf.keyAsString("binary-name"))
-			continue;
-
 		DIR *metadataDir;
 		struct dirent *de2;
 
@@ -140,6 +136,7 @@ unsigned int countMetadata()
 
 			datum++;
 		}
+
 		out += !!datum;
 		::closedir(metadataDir);
 	}
