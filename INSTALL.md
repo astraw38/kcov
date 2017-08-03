@@ -8,6 +8,9 @@ and (optional) binutils and libiberty to build kcov. Note that elfutils is
 found in multiple variants, and at least in RH/Centos/Fedora you'll need
 elfutils-devel and *not* elfutils-libelf-devel.
 
+On Linux, if [dyninst](http://www.dyninst.org) is present, kcov will also be
+able to do full-system instrumentation.
+
 Ubuntu
 ------
 Install binutils-dev libcurl4-openssl-dev zlib1g-dev libdw-dev libiberty-dev
@@ -15,11 +18,11 @@ Install binutils-dev libcurl4-openssl-dev zlib1g-dev libdw-dev libiberty-dev
 
 Fedora / Centos / RHEL
 ----------------------
-Install elfutils-libelf-devel
+Install elfutils-libelf-devel libcurl-devel binutils-devel elfutils-devel dyninst-devel
 
 Mac OS X
 --------
-brew install homebrew/dupes/zlib bash cmake pkgconfig
+brew install zlib bash cmake pkgconfig
 
 *Temporary* OSX build instructions due to Issue #166:
 

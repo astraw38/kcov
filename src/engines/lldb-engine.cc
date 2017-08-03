@@ -2,6 +2,7 @@
 #include <engine.hh>
 #include <configuration.hh>
 #include <output-handler.hh>
+#include <filter.hh>
 #include <utils.hh>
 
 #include <stdlib.h>
@@ -30,7 +31,8 @@ public:
 	LLDBEngine() :
 		m_useLoadAddresses(false),
 		m_listener(NULL),
-		m_useLLDBBreakpoints(true)
+		m_useLLDBBreakpoints(true),
+		m_filter(NULL)
 	{
 		SBDebugger::Initialize();
 		m_debugger = SBDebugger::Create();
@@ -108,7 +110,17 @@ public:
 
 	virtual bool parse()
 	{
-		// Handled when the program is launched
+		// Parse the file/line -> address mappings
+		for (uint32_t i = 0; i < m_target.GetNumModules(); i++)
+		{
+			SBModule cur = m_target.GetModuleAtIndex(i);
+
+			if (!cur.IsValid())
+				continue;
+
+			handleModule(cur);
+		}
+
 		return true;
 	}
 
@@ -124,6 +136,7 @@ public:
 
 	virtual void setupParser(IFilter *filter)
 	{
+		m_filter = filter;
 	}
 
 	std::string getParserType()
@@ -206,23 +219,7 @@ public:
 			sigs.SetShouldSuppress(i, false);
 		}
 
-		// Parse the file/line -> address mappings
-		for (uint32_t i = 0; i < m_target.GetNumModules(); i++)
-		{
-			SBModule cur = m_target.GetModuleAtIndex(i);
-
-			if (!cur.IsValid())
-				continue;
-
-			handleModule(cur);
-		}
-
 		return true;
-	}
-
-	bool checkEvents()
-	{
-		return false;
 	}
 
 	bool continueExecution()
@@ -399,22 +396,15 @@ private:
 
 			std::string filename = fmt("%s/%s", fs.GetDirectory(), fs.GetFilename());
 
+			std::string rp = m_filter->mangleSourcePath(filename);
+
 			for (LineListenerList_t::const_iterator lit = m_lineListeners.begin();
 				lit != m_lineListeners.end();
 				++lit)
-				(*lit)->onLine(filename, cur.GetLine(), getAddress(addr));
+				(*lit)->onLine(rp, cur.GetLine(), getAddress(addr));
 		}
 
 	}
-
-	void reportEvent(enum event_type type, int data = -1, uint64_t address = 0)
-	{
-		if (!m_listener)
-			return;
-
-		m_listener->onEvent(Event(type, data, address));
-	}
-
 
 	typedef std::vector<ILineListener *> LineListenerList_t;
 	typedef std::vector<IFileListener *> FileListenerList_t;
@@ -434,6 +424,8 @@ private:
 
 	InstructionMap_t m_instructionMap;
 	bool m_useLLDBBreakpoints;
+
+	IFilter *m_filter;
 };
 
 

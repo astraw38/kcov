@@ -23,8 +23,8 @@ T swap_endian(T u)
 
 static inline bool cpu_is_little_endian()
 {
-	static uint16_t data = 0x1122;
-	uint8_t *p = (uint8_t *)&data;
+	static const uint16_t data = 0x1122;
+	const uint8_t *p = (uint8_t *)&data;
 
 	return p[0] == 0x22;
 }
@@ -36,6 +36,15 @@ T to_be(T u)
 		return swap_endian<T>(u);
 	else
 		return u;
+}
+
+template <typename T>
+T to_le(T u)
+{
+	if (cpu_is_little_endian())
+		return u;
+	else
+		return swap_endian<T>(u);
 }
 
 template <typename T>

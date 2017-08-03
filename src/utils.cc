@@ -220,10 +220,24 @@ int write_file(const void *data, size_t len, const char *fmt, ...)
 }
 
 
-std::string dir_concat(const std::string &dir, const std::string &filename)
+std::string dir_concat(const std::string &dirIn, const std::string &filenameIn)
 {
-	if (dir == "")
-		return filename;
+	if (dirIn == "")
+		return filenameIn;
+
+	std::string dir = dirIn;
+	std::string filename = filenameIn;
+
+	// Slash extra slashses
+	while (dir[dir.size() - 1] == '/')
+	{
+		dir = dir.substr(0, dir.size() - 1);
+	}
+
+	while (filename[0] == '/')
+	{
+		filename = filename.substr(1);
+	}
 
 	return dir + "/" + filename;
 }
@@ -627,4 +641,21 @@ std::string escape_json(const std::string &str)
 uint32_t hash_block(const void *buf, size_t len)
 {
 	return crc32(0, (const Bytef *)buf, len);
+}
+
+std::pair<std::string, std::string> split_path(const std::string &pathStr)
+{
+	std::pair<std::string, std::string> out;
+	std::string path(pathStr);
+
+	size_t pos = path.rfind('/');
+
+	out.first = "";
+	out.second = path;
+	if (pos != std::string::npos) {
+		out.first= path.substr(0, pos + 1);
+		out.second = path.substr(pos + 1, std::string::npos);
+	}
+
+	return out;
 }
